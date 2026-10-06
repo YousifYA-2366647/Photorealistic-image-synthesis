@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "cgproject",
+  "version": "2026.0.0",
+  "description": "Photorealistic Image Synthesis practicum framework",
+  "builtin-baseline": "5f96cd15fd745122cf27e0524606d6c1efc5fd07",
+  "dependencies": [
+    "assimp",
+    "glfw3",
+    "stb"
+  ],
+  "features": {
+    "embree": {
+      "description": "Build Intel Embree from source (slow). Turn this off and unpack Intel's prebuilt Embree release into third_party/ instead.",
+      "dependencies": [
+        {
+          "name": "embree",
+          "default-features": false,
+          "features": [
+            "geometry-triangle",
+            "geometry-instance",
+            "filter-function"
+          ]
+        }
+      ]
+    }
+  },
+  "default-features": [
+    "embree"
+  ]
+}

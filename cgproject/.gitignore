@@ -1,0 +1,42 @@
+# Invisible files
+.*
+!.gitignore
+!.devctl
+!.gitattributes
+
+# Vim project files
+!.vimproject
+!.ycm_extra_conf.py
+
+# Built files
+a.out
+*.o
+*.so
+*.so.*
+*.dylib
+*.dll
+*.a
+*.exe
+
+# Backup and patch files
+*~
+*.bak
+*.orig
+*.rej
+*.patch
+*.tmp
+*.sw*
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/**
+Makefile
+cmake_install.cmake
+build/**
+build-*/**
+cmake.sh
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
