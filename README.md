@@ -3,8 +3,12 @@
 
 ## Usage
 
+building:
 ```
-cd built_binaries
-cmake ../cgproject -G "Visual Studio 18 2026"
-cmake --build .
+build_executable.bat
+```
+
+running:
+```
+python ./run_executable.py
 ```
