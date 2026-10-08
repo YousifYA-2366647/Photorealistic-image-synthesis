@@ -2,7 +2,7 @@ import tkinter as tk, subprocess
 from pathlib import Path
 
 base = Path(__file__).parent
-models = sorted((base / "cgproject/models").glob("*.mgf"))
+models = sorted((base / "built_binaries/Debug/models").glob("*.mgf"))
 exe = base / "built_binaries/Debug/cgproject.exe"
 
 root = tk.Tk(); root.title("Select a model")

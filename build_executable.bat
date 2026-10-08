@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 cd ./built_binaries
-cmake ../cgproject -G "Visual Studio 18 2026" || goto :fail
+cmake ../cgproject || goto :fail
 cmake --build . || goto :fail
 
 echo.
