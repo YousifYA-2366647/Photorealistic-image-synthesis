@@ -443,7 +443,7 @@ const vec3 classic_trace_recursive(const Ray& ray, int depth);
 // computes ideal reflected direction
 const vec3 ideal_reflected_direction(const vec3& I,  // direction of incidentce
                                      const vec3& N) { // normal
-    return vec3(0, 1, 0); // TODO: Implement
+    return (2 * (N & I)) * N - I;
 }
 
 // traces reflection ray into ideal reflected direction
@@ -465,8 +465,26 @@ const vec3 ideal_refracted_direction(const vec3& I,  // incident direction
                                      float n,        // refraction index
                                      bool* total_internal_reflection) {
     
-    // TODO: Implement
-    return vec3(0,1,0);
+    vec3 N = _N;
+    float c1 = _N & I;
+
+    if (c1 > 0) {
+        n = 1.0f / n;
+    }
+    else {
+        N = -N;
+        c1 = -c1;
+    }
+
+    const float c2 = 1.0f - n * n * (1.0f - c1 * c1);
+
+    if (c2 < 0) {
+        *total_internal_reflection = true;
+        return ideal_reflected_direction(I, N);
+    }
+
+    *total_internal_reflection = false;
+    return -n * I + (n * c1 - std::sqrt(c2)) * N;
 }
 
 // traces refraction ray into ideal refracted direction
