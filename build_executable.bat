@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 cd ./built_binaries
 cmake ../cgproject || goto :fail
-cmake --build . || goto :fail
+cmake --build . --DUSE-OPENMP=ON || goto :fail
 
 echo.
 echo.
