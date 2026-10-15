@@ -2,8 +2,8 @@ import tkinter as tk, subprocess
 from pathlib import Path
 
 base = Path(__file__).parent
-models = sorted((base / "built_binaries/Debug/models").glob("*.mgf"))
-exe = base / "built_binaries/Debug/cgproject.exe"
+models = sorted((base / "built_binaries/Release/models").glob("*.mgf"))
+exe = base / "built_binaries/Release/cgproject.exe"
 
 root = tk.Tk(); root.title("Select a model")
 lb = tk.Listbox(root, width=40, height=15)

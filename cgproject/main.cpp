@@ -412,18 +412,53 @@ struct MyHit {   // contains hit data in the way we need it here
     }
 };
 
-static unsigned int rng = 84620u;
+static thread_local uint32_t rng = 84620u;
 static bool draw_light = false;
 
-double customRandom(int col, int row) {
-    long int max = 7816723;
-    double result = ((col + 1) * (row + 1) * rng * std::rand() * std::clock()) % max;
-    return result / (double)max;
+// ---------- NOT USED ----------
+// First prototype for a random number generator
+// Not usable for multi-threaded runs due to the std::rand and std::clock not being thread-safe (state changes with each call)
+// double customRandom(int col, int row) {
+//     long int max = 7816723;
+//     double result = ((col + 1) * (row + 1) * rng * std::rand() * std::clock()) % max;
+//     return result / (double)max;
+// }
+// ------------------------------
+
+
+// Second attempt at a random number generator
+// We read about a PCG hashing method which is supposed to be very efficient for rendering on GPU's
+// This hashing method makes reversible changes to the given value
+// due to the changes being reversible, the resulting values are unique for any given value
+// NOT OUR CODE, this function came from https://www.reedbeta.com/blog/hash-functions-for-gpu-rendering/
+uint32_t pcg_hash(uint32_t x) {
+    x = x * 747796405u + 2891336453u;
+    uint32_t word = ((x >> ((x >> 28u) + 4u)) ^ x) * 277803737u;
+    return (word >> 22) ^ word;
+}
+
+// This is our code
+void rngSeed(int col, int row, int sample) {
+    uint32_t multiplier = 59482u;
+    uint32_t pixelHash = pcg_hash(col + multiplier * row); // multiply by some really high number to ensure this integer is unique for every pixel, so long as col < multiplier
+
+    uint32_t sampleOffset = 4982;
+    uint32_t sampleHash = pcg_hash(sample + sampleOffset); // Make sample have some offset so it also has unique hash values
+
+    rng = pixelHash ^ sampleHash;
+}
+
+float customRandom() {
+    rng = pcg_hash(rng);
+
+    // scale the uint32_t rng down to 24 bits (the size of the mantissa) to prevent rounding and divide it by the max value a 24-bit integer can have to ensure the result is clamped between 0 and 1
+    float inverseMaxMantissaValue = 1.0f / 16777216.0f;
+    return (rng >> 8) * inverseMaxMantissaValue;
 }
 
 vec3 sampleLight(Light& light) {
-    float u0 = customRandom((int)std::rand(), (int)std::rand());
-    float u1 = customRandom((int)std::rand(), (int)std::rand());
+    float u0 = customRandom();
+    float u1 = customRandom();
 
     float b0;
     float b1;
@@ -634,7 +669,10 @@ void stochastic_raytrace(void) {
             for (int col = 0; col < scrn->width; col++) {
                 vec3 colorSum = vec3(0, 0, 0);
                 for (int sampl = 0; sampl < samples; sampl++) {
-                    float dx = customRandom(col, row), dy = customRandom(col, row);
+                    // Reroll the rng seed for different results than the previous pass
+                    rngSeed(col, row, sampl);
+
+                    float dx = customRandom(), dy = customRandom();
                     Ray ray(scrn->eye, scrn->getDirection(col + dx, row + dy));
                     colorSum += classic_trace_recursive(ray, 0 /*depth*/);
                 }
