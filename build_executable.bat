@@ -3,8 +3,8 @@ setlocal
 cd /d "%~dp0"
 
 cd ./built_binaries
-cmake ../cgproject || goto :fail
-cmake --build . --DUSE-OPENMP=ON || goto :fail
+cmake ../cgproject --DUSE-OPENMP=ON || goto :fail
+cmake --build . --config Release --parallel || goto :fail
 
 echo.
 echo.
