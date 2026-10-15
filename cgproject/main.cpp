@@ -257,7 +257,7 @@ void raycast(void) {
     // ray cast
     printf("Ray casting\n"); fflush(stdout);
     clock_t start = clock();
-
+    
     int rows_done = 0;
 
     RT_PARALLEL_FOR_ROWS
@@ -412,9 +412,44 @@ struct MyHit {   // contains hit data in the way we need it here
     }
 };
 
+static unsigned int rng = 84620u;
+static bool draw_light = false;
+
+double customRandom(int col, int row) {
+    long int max = 7816723;
+    double result = ((col + 1) * (row + 1) * rng * std::rand() * std::clock()) % max;
+    return result / (double)max;
+}
+
+vec3 sampleLight(Light& light) {
+    float u0 = customRandom((int)std::rand(), (int)std::rand());
+    float u1 = customRandom((int)std::rand(), (int)std::rand());
+
+    float b0;
+    float b1;
+
+    if (u0 < u1) {
+        b0 = u0 / 2;
+        b1 = u1 - b0;
+    }
+    else {
+        b1 = u1 / 2;
+        b0 = u0 - b1;
+    }
+
+    const Triangle* t = light.tri;
+    vec3 v0 = t->surface->vcoord[t->vidx];
+    vec3 v1 = t->surface->vcoord[t->vidx + 1];
+    vec3 v2 = t->surface->vcoord[t->vidx + 2];
+
+    vec3 p = vec3(b0, b1, 1 - b0 - b1);
+    return p[0] * v0 + p[1] * v1 + p[2] * v2;
+}
+
 // trace shadow ray. return light source contribution
 const vec3 classic_trace_light(MyHit& hit, Light& light) {
-    vec3 ldir = light.mid - hit.pos;
+    vec3 target = draw_light ? sampleLight(light) : light.mid;
+    vec3 ldir = target - hit.pos;
     Ray shadowray(hit.pos.ptr(), ldir.ptr(), EPSILON, 1 - EPSILON); // see rt.h
     shadowray.exclude[0] = hit.tri;   // avoid immediate self-intersections
     shadowray.exclude[1] = light.tri;
@@ -566,6 +601,56 @@ void raytrace(void) {
 // the drawing window
 void stochastic_raytrace(void) {
     printf("stochastic raytrace\n");
+    scrn->setView(c2w(pos), c2w(pos + dir), c2w(up), fov * M_PI / 180.);
+    scrn->clear();
+
+    // Get list of light sources
+    get_lights();
+
+    if (nrlights == 0) {
+        fprintf(stderr, "No lights in scene. Define some first by left-clicking"
+            " some surfaces while holding the ctrl key.\n");
+        return;
+    }
+
+    if (nrlights > nrlightsamples)
+        printf("Too many lights: using only the %d most powerful\n",
+            nrlightsamples);
+
+    printf("Max. ray recursion depth = %d\n", max_ray_depth);
+
+#ifdef HAVE_OPENMP
+    printf("Using %d threads\n", omp_get_max_threads());
+#endif
+
+    clock_t start = clock();
+
+    int rows_done = 0;
+    int samples = 10;
+    draw_light = true;
+
+    RT_PARALLEL_FOR_ROWS
+        for (int row = 0; row < scrn->height; row++) {
+            for (int col = 0; col < scrn->width; col++) {
+                vec3 colorSum = vec3(0, 0, 0);
+                for (int sampl = 0; sampl < samples; sampl++) {
+                    float dx = customRandom(col, row), dy = customRandom(col, row);
+                    Ray ray(scrn->eye, scrn->getDirection(col + dx, row + dy));
+                    colorSum += classic_trace_recursive(ray, 0 /*depth*/);
+                }
+                scrn->setHDRPixel(col, row, colorSum / (float)samples);
+            }
+
+            RT_REPORT_ROW(rows_done, scrn->height);
+        }
+
+    draw_light = false;
+
+    printf(" done (%.3f secs.)\n", ((float)clock() - (float)start) /
+        (float)CLOCKS_PER_SEC);
+
+    scrn->pack();        // without tone mapping
+    //  scrn->tonemap();     // with tone mapping
 }
 
 //////////////////////////////////////////////////////
